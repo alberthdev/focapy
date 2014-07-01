@@ -1,23 +1,69 @@
 import f90doc
+import re
+
 in_files = [ "read_dummy.f90" ]
 default_types  = {
-                   'byte'             : 'unsigned char',
-                   'integer'          : 'int',
-                   'integer*2'        : 'short int',
-                   'real'             : 'float',
-                   
-                   'double precision' : 'double',
-                   'logical'          : 'int',
-                   'character'        : 'char',
+                    'byte'              : 'unsigned char',
+                    'integer'           : 'int',
+                    'real'              : 'float',
+
+                    'double precision'  : 'double',
+                    'logical'           : 'int',
+                    'character'         : 'char',
                  }
+
+type_table = {
+                'integer'   :
+                                {
+                                    1           : 'unsigned char',
+                                    2           : 'short int',
+                                    3           : 'int',
+                                    4           : 'long long int',
+                                    'i_kind'    : 'int',
+                                    'i_byte'    : 'unsigned char',
+                                    'i_short'   : 'short int',
+                                    'i_long'    : 'int',
+                                    'i_llong'   : 'long long int',
+                                },
+                'real'      :
+                                {
+                                    4           : 'float',
+                                    8           : 'double',
+                                    16          : 'long double',
+                                    'r_kind'    : 'double',
+                                    'r_single'  : 'float',
+                                    'r_double'  : 'double',
+                                    'r_quad'    : 'long double',
+                                },
+                'character' :
+                                {
+                                    '#' : 'char %s[%i]',
+                                },
+             }
 
 override_types = {
-                   'integer(i_kind)'  : 'int',
-                   'real(r_single)'   : 'float',
+                   #'integer(i_kind)'  : 'int',
+                   #'real(r_single)'   : 'float',
                  }
 
-regex_chars = r'character\(len=(\d+)\)'
-regex_chars_2 = r'character\*(\d+)'
+chars_re       = re.compile(r'character\(len=(\d+)\)')
+chars_re_2     = re.compile(r'character\*(\d+)')
+int_re         = re.compile(r'integer\((\d+)\)')
+int_re_2       = re.compile(r'integer\*(\d+)')
+real_re        = re.compile(r'real\((\d+)\)')
+real_re_2      = re.compile(r'real\*(\d+)')
+type_re        = re.compile(r'type\(([a-zA-Z]+)\)')
+type_re_2      = re.compile(r'type\*([a-zA-Z]+)')
+
+generic_regex  = [
+                    r'\(([a-zA-Z]+)\)',
+                    r'\*([a-zA-Z]+)',
+                 ]
+extended_types = [
+                    'integer',
+                    'real',
+                    'character',
+                 ]
 
 header_fh = open("test.h", "w")
 header_fh.write("#include <stdint.h>\n\n")
@@ -48,16 +94,35 @@ for mod, name in modules:
             for type_ele in type.elements:
                print "      Element '%s': type '%s'" % (type_ele.name, type_ele.type)
                type_ele_t = type_ele.type.lower()
+               type_ele_t_base = type_ele_t.split("*")[0].split("(")[0]
                if type_ele_t in default_type_types:
                   header_fh.write("    %s %s;\n" % (default_types[type_ele_t], type_ele.name))
                elif type_ele_t in override_type_types:
                   header_fh.write("    %s %s;\n" % (override_types[type_ele_t], type_ele.name))
+               elif type_ele_t_base in extended_types:
+                   subst_made = False
+                   for generic_re in generic_regex:
+                       regex = re.compile(type_ele_t_base + generic_re)
+                       match = regex.search(type_ele_t)
+                       if match:
+                           found_match = match.groups()[0]
+                           if found_match.isdigit():
+                               found_match = int(found_match)
+                           if found_match in type_table[type_ele_t_base]:
+                               header_fh.write("    %s %s;\n" % (type_table[type_ele_t_base][found_match], type_ele.name))
+                               subst_made = True
+                               break
+                   if not subst_made:
+                       print "WARNING: Could not find equivalent C definition for type '%s'!" % type
+                       print "Make sure you define it!"
+                       header_fh.write("    // STUB: %s %s\n" % (type_ele_t, type_ele.name))
                # Hacky
                elif type_ele_t == 'character(len=20)':
                   header_fh.write("    char %s[20];\n" % (type_ele.name))
                else:
                   print "WARNING: Could not find equivalent C definition for type '%s'!" % type
                   print "Make sure you define it!"
+                  header_fh.write("    // STUB: %s %s\n" % (type_ele_t, type_ele.name))
             header_fh.write("} %s, *p_%s;\n" % (type.name, type.name))
       header_fh.write('#pragma pack()\n')
    
