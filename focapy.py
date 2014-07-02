@@ -1,5 +1,6 @@
 import f90doc
 import re
+import sys
 
 in_files = [ "read_dummy.f90" ]
 default_types  = {
@@ -119,6 +120,57 @@ for mod, name in modules:
                     print "WARNING: Could not find equivalent C definition for type '%s'!" % type
                     print "Make sure you define it!"
                     header_fh.write("// STUB: %s %s\n" % (type, element.name))
+            elif type_base in custom_types.keys():
+                # Validation
+                if "regex" not in custom_types[type_base]:
+                    print "ERROR: Custom types dict is invalid! (Regex definition not found!)"
+                    sys.exit(1)
+                if "map" not in custom_types[type_base]:
+                    print "ERROR: Custom types dict is invalid! (Map definition not found!)"
+                    sys.exit(1)
+                if "format" not in custom_types[type_base]:
+                    print "ERROR: Custom types dict is invalid! (Map definition not found!)"
+                    sys.exit(1)
+                for reg in custom_types[type_base]["regex"]:
+                    regex = re.compile(reg)
+                    match = regex.search(type)
+                    if match:
+                        # Map check
+                        if len(custom_types[type_base]["map"]) != len(match.groups()):
+                            print "ERROR: Number of regex matches does not match number of maps!"
+                            sys.exit(1)
+                        map_dict = []
+                        map_res = match.groups()
+                        for i in xrange(0, len(map_res)):
+                            # Validate
+                            map_split = custom_types[type_base]["map"][i].split("=")
+                            if len(map_split) != 2:
+                                print "ERROR: Map specification is invalid! It should be variable=%TYPE%!"
+                                sys.exit(1)
+                            if not ((map_split[1][0] == "%") and (map_split[1][-1] == "%")):
+                                print "ERROR: Map specification is invalid! The type part is invalid - it should be variable=%TYPE%!"
+                                sys.exit(1)
+                            map_name = map_split[0]
+                            map_type = map_split[1].upper()
+                            if map_type == "%INT%":
+                                map_dict[map_name] = int(map_res[i])
+                            elif map_type == "%FLOAT%":
+                                map_dict[map_name] = float(map_res[i])
+                            elif map_type == "%STRING%":
+                                map_dict[map_name] = str(map_res[i])
+                            else:
+                                print "ERROR: Map specification is invalid! (Invalid type found - valid: %INT%, %FLOAT%, %STRING%)"
+                                sys.exit(1)
+                final_format = custom_types[type_base]["format"]
+                # Variable replacement
+                for var in map_dict.keys():
+                    final_format = final_format.replace("%%" + var + "%%", map_dict[var])
+                # Static variable replacement
+                final_format = final_format.replace("%NAME%", element.name);
+                final_format = final_format.replace("%POINTER%", "");
+                
+                # Write it out!
+                header_fh.write(final_format + ";\n")
             else:
                 print "WARNING: Could not find equivalent C definition for type '%s'!" % type
                 print "Make sure you define it!"
