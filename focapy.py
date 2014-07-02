@@ -35,12 +35,47 @@ type_table = {
                                     'r_double'  : 'double',
                                     'r_quad'    : 'long double',
                                 },
-                'character' :
-                                {
-                                    '#' : 'char %s[%i]',
-                                },
              }
 
+# Format:
+# regex  - the regex to match the Fortran type.
+# map    - a mapping of each regex match to a named variable, respectively
+#          by array. Format: map_var = %TYPE_VAR%. Uses %TYPE_VARS%:
+#              %INT%    - Match integer type.
+#              %STRING% - Match string type.
+# format - final C header component to be written. Uses %VAR_CONTEXT_VARS%
+#          and %%map_var%%.
+#          %VAR_CONTEXT_VARS%:
+#              %NAME%   - Variable name.
+
+custom_types = {
+                'character' :
+                            {
+                                'regex':
+                                        [ ## TODO: variable value support
+                                            r'character\(len=(\d+)\)',
+                                            r'character\*(\d+)',
+                                        ],
+                                'map'   :
+                                        [
+                                            'length=%INT%',
+                                        ],
+                                'format':   'char %NAME%[%%length%%]',
+                            },
+                'type'      :
+                            {
+                                'regex':
+                                        [
+                                            r'type\(\w+\)',
+                                        ],
+                                'map'   :
+                                        [
+                                            'type_name=%STRING%',
+                                        ],
+                                'format':   '%%type_name%% %NAME%',
+                            },
+               }
+                                        
 override_types = {
                    #'integer(i_kind)'  : 'int',
                    #'real(r_single)'   : 'float',
@@ -56,13 +91,8 @@ type_re        = re.compile(r'type\(([a-zA-Z]+)\)')
 type_re_2      = re.compile(r'type\*([a-zA-Z]+)')
 
 generic_regex  = [
-                    r'\(([a-zA-Z]+)\)',
-                    r'\*([a-zA-Z]+)',
-                 ]
-extended_types = [
-                    'integer',
-                    'real',
-                    'character',
+                    r'\((\w+)\)',
+                    r'\*(\w+)',
                  ]
 
 header_fh = open("test.h", "w")
@@ -76,13 +106,32 @@ for mod, name in modules:
       for element in mod.elements:
          print "    Element '%s': type '%s'" % (element.name, element.type)
          type = element.type.lower()
+         type_base = type.split("*")[0].split("(")[0]
          if type in default_types:
             header_fh.write("%s *%s;\n" % (default_types[type], element.name))
          elif type in override_types:
             header_fh.write("%s *%s;\n" % (override_types[type], element.name))
+         elif type_base in type_table.keys():
+            subst_made = False
+            for generic_re in generic_regex:
+               regex = re.compile(type_base + generic_re)
+               match = regex.search(type)
+               if match:
+                   found_match = match.groups()[0]
+                   if found_match.isdigit():
+                       found_match = int(found_match)
+                   if found_match in type_table[type_base]:
+                       header_fh.write("%s %s;\n" % (type_table[type_base][found_match], element.name))
+                       subst_made = True
+                       break
+            if not subst_made:
+               print "WARNING: Could not find equivalent C definition for type '%s'!" % type
+               print "Make sure you define it!"
+               header_fh.write("// STUB: %s %s\n" % (type, element.name))
          else:
             print "WARNING: Could not find equivalent C definition for type '%s'!" % type
             print "Make sure you define it!"
+            header_fh.write("// STUB: %s %s\n" % (type, element.name))
 
    if len(mod.types) > 0:
       print "  Types:"
@@ -95,16 +144,18 @@ for mod, name in modules:
                print "      Element '%s': type '%s'" % (type_ele.name, type_ele.type)
                type_ele_t = type_ele.type.lower()
                type_ele_t_base = type_ele_t.split("*")[0].split("(")[0]
-               if type_ele_t in default_type_types:
+               if type_ele_t in default_types:
                   header_fh.write("    %s %s;\n" % (default_types[type_ele_t], type_ele.name))
-               elif type_ele_t in override_type_types:
+               elif type_ele_t in override_types:
                   header_fh.write("    %s %s;\n" % (override_types[type_ele_t], type_ele.name))
-               elif type_ele_t_base in extended_types:
+               elif type_ele_t_base in type_table.keys():
                    subst_made = False
                    for generic_re in generic_regex:
+                       print "DEBUG: SEARCH: "+(type_ele_t_base + generic_re)
                        regex = re.compile(type_ele_t_base + generic_re)
                        match = regex.search(type_ele_t)
                        if match:
+                           print "MATCH!"
                            found_match = match.groups()[0]
                            if found_match.isdigit():
                                found_match = int(found_match)
@@ -113,14 +164,14 @@ for mod, name in modules:
                                subst_made = True
                                break
                    if not subst_made:
-                       print "WARNING: Could not find equivalent C definition for type '%s'!" % type
+                       print "WARNING: Could not find equivalent C definition for type '%s'!" % type_ele_t
                        print "Make sure you define it!"
                        header_fh.write("    // STUB: %s %s\n" % (type_ele_t, type_ele.name))
                # Hacky
                elif type_ele_t == 'character(len=20)':
                   header_fh.write("    char %s[20];\n" % (type_ele.name))
                else:
-                  print "WARNING: Could not find equivalent C definition for type '%s'!" % type
+                  print "WARNING: Could not find equivalent C definition for type '%s'!" % type_ele_t
                   print "Make sure you define it!"
                   header_fh.write("    // STUB: %s %s\n" % (type_ele_t, type_ele.name))
             header_fh.write("} %s, *p_%s;\n" % (type.name, type.name))
@@ -139,12 +190,31 @@ for mod, name in modules:
             for sub_arg in subroutine.arguments:
                print "        Argument element '%s': type '%s'" % (sub_arg.name, sub_arg.type)
                type = sub_arg.type
+               type_base = type.split("*")[0].split("(")[0]
                if type in default_types:
                   args_list.append("%s *%s" % (default_types[type], sub_arg.name))
                   args_map[type] = "%s *%s" % (default_types[type], sub_arg.name)
                elif type in override_types:
                   args_list.append("%s *%s" % (override_types[type], sub_arg.name))
                   args_map[type] = "%s *%s" % (override_types[type], sub_arg.name)
+               elif type_base in type_table.keys():
+                  subst_made = False
+                  for generic_re in generic_regex:
+                      regex = re.compile(type_base + generic_re)
+                      match = regex.search(type)
+                      if match:
+                          found_match = match.groups()[0]
+                          if found_match.isdigit():
+                              found_match = int(found_match)
+                          if found_match in type_table[type_base]:
+                              args_list.append("%s *%s" % (type_table[type_base][found_match], sub_arg.name))
+                              args_map[type] = "%s *%s" % (type_table[type_base][found_match], sub_arg.name)
+                              subst_made = True
+                              break
+                  if not subst_made:
+                      print "WARNING: Could not find equivalent C definition for type '%s'!" % type
+                      print "Make sure you define it!"
+                      header_fh.write("/* STUB: %s %s,*/ " % (type, sub_arg.name))
                # Hacky
                elif type == "type(header_list)":
                   args_list.append("header_list *%s" % (sub_arg.name))
@@ -155,6 +225,7 @@ for mod, name in modules:
                else:
                   print "WARNING: Could not find equivalent C definition for type '%s'!" % type
                   print "Make sure you define it!"
+                  header_fh.write("/* STUB: %s %s,*/ " % (type, sub_arg.name))
                if len(sub_arg.attributes) > 0:
                   print "          Attributes: %s" % ( ", ".join([("'%s'" % x) for x in sub_arg.attributes]) )
                   for attr in sub_arg.attributes:
