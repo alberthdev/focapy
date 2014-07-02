@@ -105,20 +105,20 @@ for mod, name in modules:
             elif type_base in type_table.keys():
                 subst_made = False
                 for generic_re in generic_regex:
-                   regex = re.compile(type_base + generic_re)
-                   match = regex.search(type)
-                   if match:
-                       found_match = match.groups()[0]
-                       if found_match.isdigit():
-                           found_match = int(found_match)
-                       if found_match in type_table[type_base]:
-                           header_fh.write("%s %s;\n" % (type_table[type_base][found_match], element.name))
-                           subst_made = True
-                           break
+                    regex = re.compile(type_base + generic_re)
+                    match = regex.search(type)
+                    if match:
+                        found_match = match.groups()[0]
+                        if found_match.isdigit():
+                            found_match = int(found_match)
+                        if found_match in type_table[type_base]:
+                            header_fh.write("%s %s;\n" % (type_table[type_base][found_match], element.name))
+                            subst_made = True
+                            break
                 if not subst_made:
-                   print "WARNING: Could not find equivalent C definition for type '%s'!" % type
-                   print "Make sure you define it!"
-                   header_fh.write("// STUB: %s %s\n" % (type, element.name))
+                    print "WARNING: Could not find equivalent C definition for type '%s'!" % type
+                    print "Make sure you define it!"
+                    header_fh.write("// STUB: %s %s\n" % (type, element.name))
             else:
                 print "WARNING: Could not find equivalent C definition for type '%s'!" % type
                 print "Make sure you define it!"
