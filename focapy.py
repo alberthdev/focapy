@@ -81,15 +81,6 @@ override_types = {
                    #'real(r_single)'   : 'float',
                  }
 
-chars_re       = re.compile(r'character\(len=(\d+)\)')
-chars_re_2     = re.compile(r'character\*(\d+)')
-int_re         = re.compile(r'integer\((\d+)\)')
-int_re_2       = re.compile(r'integer\*(\d+)')
-real_re        = re.compile(r'real\((\d+)\)')
-real_re_2      = re.compile(r'real\*(\d+)')
-type_re        = re.compile(r'type\(([a-zA-Z]+)\)')
-type_re_2      = re.compile(r'type\*([a-zA-Z]+)')
-
 generic_regex  = [
                     r'\((\w+)\)',
                     r'\*(\w+)',
