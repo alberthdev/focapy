@@ -17,12 +17,12 @@
 # Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307 USA
 # 
-# C Header Writing Functions
+# Python SWIG Definition Writing Functions
 # 
 import re
 from typedefs import *
 
-def header_do_write(fh, c_format, f_type, name):
+def python_do_write(fh, c_format, f_type, name):
     if type(fh) == list:
         if c_format.count("%s") == 1:
             fh.append(c_format % (f_type))
@@ -40,10 +40,10 @@ def header_do_write(fh, c_format, f_type, name):
         else:
             print "ERROR: Only 1 or 2 %s format handlers may be used!"
 
-def header_write_default_type(fh, c_format, f_type, name):
-    header_do_write(fh, c_format, f_type, name)
+def python_write_default_type(fh, c_format, f_type, name):
+    python_do_write(fh, c_format, f_type, name)
 
-def header_write_extended_type(fh, c_format, f_type, name, stub_format = "// STUB: %s %s\n"):
+def python_write_extended_type(fh, c_format, f_type, name, stub_format = "// STUB: %s %s\n"):
     f_type_base = f_type.split("*")[0].split("(")[0]
     subst_made = False
     for generic_re in GENERIC_REGEX:
@@ -54,7 +54,7 @@ def header_write_extended_type(fh, c_format, f_type, name, stub_format = "// STU
             if found_match.isdigit():
                 found_match = int(found_match)
             if found_match in TYPE_TABLE[f_type_base]:
-                header_do_write(fh, c_format, TYPE_TABLE[f_type_base][found_match], name)
+                python_do_write(fh, c_format, TYPE_TABLE[f_type_base][found_match], name)
                 subst_made = True
                 break
     if not subst_made:
@@ -65,7 +65,7 @@ def header_write_extended_type(fh, c_format, f_type, name, stub_format = "// STU
         else:
             fh.write(stub_format % (f_type, name))
 
-def header_write_custom_type(fh, c_format, f_type, name, pointer = "", name_replace = None):
+def python_write_custom_type(fh, f_type, name, pointer = "", name_replace = None):
     f_type_base = f_type.split("*")[0].split("(")[0]
     # Validation
     if "regex" not in CUSTOM_TYPES[f_type_base]:
@@ -127,16 +127,21 @@ def header_write_custom_type(fh, c_format, f_type, name, pointer = "", name_repl
     else:
         fh.write(final_format + ";\n")
 
-def header_write_type(fh, c_format, f_type, name, pointer = "", stub_format = "// STUB: %s %s\n", name_replace = None):
+def python_write_type(fh, c_format, f_type, name, pointer = "", stub_format = "// STUB: %s %s\n", name_replace = None):
     f_type_base = f_type.split("*")[0].split("(")[0]
     if f_type in DEFAULT_TYPES:
-        header_write_default_type(fh, c_format, DEFAULT_TYPES[f_type], name)
+        #print "DEFAULT: %s" % c_format
+        python_write_default_type(fh, c_format, DEFAULT_TYPES[f_type], name)
     elif f_type in OVERRIDE_TYPES:
-        header_write_default_type(fh, c_format, OVERRIDE_TYPES[f_type], name)
+        #print "OVERRIDE: %s" % c_format
+        python_write_default_type(fh, c_format, OVERRIDE_TYPES[f_type], name)
     elif f_type_base in TYPE_TABLE.keys():
-        header_write_extended_type(fh, c_format, f_type, name, stub_format)
+        #print "TYPE_TABLE: %s" % c_format
+        python_write_extended_type(fh, c_format, f_type, name, stub_format)
     elif f_type_base in CUSTOM_TYPES.keys():
-        header_write_custom_type(fh, c_format, f_type, name, pointer, name_replace)
+        #print "CUSTOM_TYPES: %s" % c_format
+        # TODO: fix custom so that it (somewhat) uses c_format
+        python_write_custom_type(fh, f_type, name, pointer, name_replace)
     else:
         print "WARNING: Could not find equivalent C definition for type '%s'!" % type
         print "Make sure you define it!"
@@ -145,38 +150,38 @@ def header_write_type(fh, c_format, f_type, name, pointer = "", stub_format = "/
         else:
             fh.write(stub_format % (f_type, name))
 
-def header_write_header(fh):
-    fh.write("#include <stdint.h>\n\n")
+def python_write_header(fh, name):
+    fh.write("%%module %s\n\n" % name)
 
-def header_write_seperator(fh):
+def python_write_c_include(fh, include_file):
+    fh.write("%{\n")
+    fh.write("#define SWIG_FILE_WITH_INIT\n")
+    fh.write('#include "%s"\n' % include_file)
+    fh.write("%}\n\n")
+
+def python_write_seperator(fh):
     fh.write("\n")
 
-def header_write_pre_derived_type(fh):
-    fh.write('#pragma pack(2)\n\n')
-
-def header_write_post_derived_type(fh):
-    fh.write('#pragma pack()\n\n')
-
-def header_write_start_derived_type(fh, name):
+def python_write_start_derived_type(fh, name):
     fh.write("typedef struct %s_ {\n" % name)
 
-def header_write_end_derived_type(fh, name):
+def python_write_end_derived_type(fh, name):
     fh.write("} %s, *p_%s;\n" % (name, name))
     fh.write("\n")
 
-def header_write_start_subroutine(fh, name):
+def python_write_start_subroutine(fh, name):
     fh.write("void %s(" % name)
 
-def header_write_end_subroutine(fh, args_list = None):
+def python_write_end_subroutine(fh, args_list = None):
     if type(args_list) == list:
         fh.write("%s);\n" % ", ".join(args_list))
     else:
         fh.write(");\n")
 
-def header_write_start_function(fh, name, f_type):
+def python_write_start_function(fh, name, f_type):
     valid_type_arr = []
-    header_write_type(valid_type_arr, "%s", f_type, name)
+    python_write_type(valid_type_arr, "%s", f_type, name)
     fh.write("%s %s(" % (valid_type_arr[0], name))
 
-def header_write_end_function(fh, args_list = None):
-    header_write_end_subroutine(fh, args_list)
+def python_write_end_function(fh, args_list = None):
+    python_write_end_subroutine(fh, args_list)

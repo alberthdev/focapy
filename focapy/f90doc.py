@@ -66,6 +66,7 @@ type_re   = re.compile(r'^type\s+(?!\()',re.IGNORECASE)
 type_end  = re.compile('^end\s*type',re.IGNORECASE)
 
 types       = r'recursive|pure|double precision|elemental|(real(\(.*?\))?)|(complex(\(.*?\))?)|(integer(\(.*?\))?)|(logical)|(character(\(.*?\))?)|(type\s*\().*?(\))'
+#types      += r'(real\*(.*))|(complex\*(.*))|(integer\*(.*))|(character\*(.*))'
 attribs     = r'allocatable|pointer|save|dimension\(.*?\)|parameter|target' # jrk33 added target
 a_attribs   = r'allocatable|pointer|save|dimension\(.*?\)|intent\(.*?\)|optional|target'
 
