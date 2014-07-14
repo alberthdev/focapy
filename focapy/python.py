@@ -152,6 +152,8 @@ def python_write_type(fh, c_format, f_type, name, pointer = "", stub_format = "/
 
 def python_write_header(fh, name):
     fh.write("%%module %s\n\n" % name)
+    fh.write('%include "cpointer.i"')
+    fh.write('%include "carrays.i"')
 
 def python_write_c_include(fh, include_file):
     fh.write("%{\n")
@@ -169,19 +171,43 @@ def python_write_end_derived_type(fh, name):
     fh.write("} %s, *p_%s;\n" % (name, name))
     fh.write("\n")
 
-def python_write_start_subroutine(fh, name):
-    fh.write("void %s(" % name)
+def python_write_start_subroutine(fh, name, normal_func = False):
+    if normal_func:
+        fh.write("void %s(" % name)
+    else:
+        #fh.write('%callback("%s");\n')
+        #fh.write("void *(*%s_)(" % name)
+        fh.write("void %s_(" % name)
 
-def python_write_end_subroutine(fh, args_list = None):
+def python_write_end_subroutine(fh, args_list = None, normal_func = False):
     if type(args_list) == list:
         fh.write("%s);\n" % ", ".join(args_list))
     else:
         fh.write(");\n")
+    if not normal_func:
+        pass
+        #fh.write('%nocallback;\n')
 
 def python_write_start_function(fh, name, f_type):
     valid_type_arr = []
     python_write_type(valid_type_arr, "%s", f_type, name)
-    fh.write("%s %s(" % (valid_type_arr[0], name))
+    fh.write("%s %s_(" % (valid_type_arr[0], name))
 
 def python_write_end_function(fh, args_list = None):
     python_write_end_subroutine(fh, args_list)
+
+def python_write_footer(fh):
+    fh.write("%pointer_functions(int, intp);\n")
+    fh.write("%pointer_functions(char, charp);\n")
+    fh.write("%pointer_functions(float, floatp);\n")
+    fh.write("%pointer_functions(double, doublep);\n")
+    
+    """fh.write("%array_class(int, inta);")
+    fh.write("%array_class(char, chara);")
+    fh.write("%array_class(float, floata);")
+    fh.write("%array_class(double, doublea);")"""
+    
+    fh.write("%array_functions(int, inta);")
+    fh.write("%array_functions(char, chara);")
+    fh.write("%array_functions(float, floata);")
+    fh.write("%array_functions(double, doublea);")

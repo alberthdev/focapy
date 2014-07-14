@@ -164,8 +164,11 @@ def header_write_end_derived_type(fh, name):
     fh.write("} %s, *p_%s;\n" % (name, name))
     fh.write("\n")
 
-def header_write_start_subroutine(fh, name):
-    fh.write("void %s(" % name)
+def header_write_start_subroutine(fh, name, normal_func = False):
+    if normal_func:
+        fh.write("void %s(" % name)
+    else:
+        fh.write("void *(*%s_)(" % name)
 
 def header_write_end_subroutine(fh, args_list = None):
     if type(args_list) == list:
@@ -176,7 +179,7 @@ def header_write_end_subroutine(fh, args_list = None):
 def header_write_start_function(fh, name, f_type):
     valid_type_arr = []
     header_write_type(valid_type_arr, "%s", f_type, name)
-    fh.write("%s %s(" % (valid_type_arr[0], name))
+    fh.write("%s (*%s_)(" % (valid_type_arr[0], name))
 
 def header_write_end_function(fh, args_list = None):
     header_write_end_subroutine(fh, args_list)

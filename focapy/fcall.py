@@ -17,16 +17,18 @@
 # Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307 USA
 # 
+# Fortran Compiled Library Call Format Finder Functions
+# 
 
-from focapy.focapy import focapy
+global _fcall_format
+global _fcall_prefix
 
-in_files = [ "read_dummy.f90" ]
+# For now, set it to the correct value. We'll autodetect later.
+_fcall_format = "%MODNAME%_mp_%FUNC_%"
+_fcall_prefix = "%MODNAME%_mp_"
 
-mod_name = "read_dummy"
+def substName(mod, func):
+    return _fcall_format.replace("%MODNAME%", mod).replace("%FUNC%", func).replace("%FUNC_%", func + "_")
 
-c_output_file = "read_dummy_f2c.c"
-header_output_file = "read_dummy.h"
-python_output_file = "read_dummy.i"
-python_name = "read_dummy"
-
-focapy(in_files, mod_name, c_output_file, header_output_file, python_output_file, python_name)
+def getPrefix(mod):
+    return _fcall_prefix.replace("%MODNAME%", mod)
