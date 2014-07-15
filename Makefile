@@ -27,11 +27,11 @@ read_dummy_run.o: read_dummy.h src/read_dummy_run.c
 read_dummy: read_dummy.mod read_dummy_run.o
 	@$(ECHO) $(BOLD)" ** Compiling C program -> final executable..."$(NBOLD)
 	#icc -o test test.o read_dummy.o -lifcore -limf
-	ifort -g -o read_dummy read_dummy_run.o read_dummy_f2c.o -nofor-main
+	ifort -g -o read_dummy read_dummy_run.o read_dummy_f2c.o read_dummy.o fcwrap.o -nofor-main
 #######################################################################
 fcwrap.o: src/fcwrap/fcwrap.f90
 	@$(ECHO) $(BOLD)" ** Compiling Fortran/C wrapper..."$(NBOLD)
-	ifort -g -free -fPIC -Isrc/fcwrap/include -c src/fcwrap/fcwrap.f90
+	ifort -g -free -fPIC -Isrc/fcwrap/include -c src/fcwrap/fcwrap2.f90 -o fcwrap.o
 
 fcwrap.so: fcwrap.o
 	@$(ECHO) $(BOLD)" ** Compiling Fortran/C wrapper library..."$(NBOLD)
@@ -113,7 +113,8 @@ python-opt:
 #######################################################################
 clean:
 	@$(ECHO) $(BOLD)" ** Cleaning source directory..."$(NBOLD)
-	rm -f *.mod *.x *.pyc *.o *.so read_dummy.py read_dummy_wrap.c read_dummy_f2c.c read_dummy.h read_dummy read_dummy.i test.output.binary
+	#rm -f *.mod *.x *.pyc *.o *.so read_dummy.py read_dummy_wrap.c read_dummy_f2c.c read_dummy.h read_dummy read_dummy.i test.output.binary
+	rm -f *.mod *.x *.pyc *.o *.so read_dummy.py read_dummy test.output.binary
 
 clean-c:
 	@$(ECHO) $(BOLD)" ** Removing objects from source directory..."$(NBOLD)
