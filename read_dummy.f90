@@ -1,5 +1,5 @@
 module read_dummy
-
+  use, intrinsic :: iso_c_binding
   use kinds, only:  i_kind,r_single,r_quad
   implicit none
 
