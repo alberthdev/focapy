@@ -1,0 +1,47 @@
+TODO
+===============
+
+** COMBINATIONAL WRAPPER METHOD **
+
+(1) Write code to monkey-patch *.f90. This includes:
+    -> Adding iso_c_binding to the top via this line:
+       use, intrinsic :: iso_c_binding
+    -> Adding bind(c) to ONLY subroutines without assumed-size arrays
+       (e.g. array dimension(:) size)
+    -> Replace ALL VARTYPE*SIZE with VARTYPE(SIZE) (f90+ syntax).
+    -> Save *.f90 in an out/ directory.
+(2) Write code to generate wrappers for subroutines WITH assumed-size
+    arrays!
+    -> Save new code to file fcwrap.f90.
+    -> Two code paths depending on variable...
+       * INPUT dependent variables
+       * OUTPUT dependent variables
+       
+       * INOUT not supported (for now)
+       * Multiple variables MIGHT be supported (no guarantees)
+    -> Option to either:
+       * Call the new subroutine SUBROUTINE_FW
+       * Rename the old subroutine to SUBROUTINE_OLD, and call the new
+         one SUBROUTINE, keeping the names consistent. This is more
+         friendly, but it can be dirty due to monkey patching!
+(3) Write code to generate C headers.
+    -> Global variables generate extern C variable declarations.
+    -> Derived types generate typedef structs with special packing
+       (#pragma pack(2)).
+    -> Normal subroutines generate void function declarations.
+    -> Normal functions generate function declarations with the correct return type.
+    -> Special, wrapped subroutines/functions generate void/return type function
+       declarations linking to the wrapped subroutine/function.
+(4) Write code to generate SWIG input files.
+    -> Same rules as above, without the special packing.
+    -> Add additonal SWIG macro code to enable easy creation of C pointers
+       and arrays from Python.
+(5) Write code to generate Makefiles to perform procedral generation of the
+    Python module(s).
+    -> Makefile should run in this order:
+       * Compile *.f90 files, including wrapper;
+       * Run SWIG generator;
+       * Compile final shared library Python module.
+(6) Write code to un-hardcode values via accepting command line arguments
+    to change settings/behavior.
+
