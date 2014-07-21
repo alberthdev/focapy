@@ -1,5 +1,4 @@
 import focapy
-import cmod
 import python
 import header
 import typedefs

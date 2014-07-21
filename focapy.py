@@ -20,18 +20,12 @@
 
 from focapy.focapy import focapy
 
-in_files = [ "read_dummy.f90" ]
+in_files = [ "read_diag.f90" ]
 
 mod_name = "read_dummy"
 
-c_output_file = "read_dummy_f2c.c"
 header_output_file = "read_dummy.h"
 python_output_file = "read_dummy.i"
 python_name = "read_dummy"
 
-print "** I butcher your generated files, so my developer has forced me to"
-print "** stop. I need to be taken to the Py-kemon Training Center to"
-print "** learn the ways of COMBINATIONAL WRAPPER METHOD."
-print "** Once I have learned, I will be allowed to make pretty source"
-print "** files again!"
-#focapy(in_files, mod_name, c_output_file, header_output_file, python_output_file, python_name)
+focapy(in_files, mod_name, header_output_file, python_output_file, python_name)
