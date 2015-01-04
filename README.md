@@ -3,6 +3,8 @@ focapy - OUTDATED BRANCH
 Please visit and/or checkout the latest branch:
 testing/combin-wrapper-method
 
+[testing/combin-wrapper-method](testing/combin-wrapper-method)
+
 focapy
 ======
 
