@@ -20,7 +20,8 @@
 
 from focapy.focapy import focapy
 
-in_files = [ "read_diag.f90" ]
+#in_files = [ "read_diag.f90" ]
+in_files = [ "read_dummy.f90" ]
 
 mod_name = "read_dummy"
 

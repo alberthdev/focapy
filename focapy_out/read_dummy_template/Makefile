@@ -124,7 +124,7 @@ python: pre-python _read_dummy.so
 pre-python: 
 	@$(ECHO) $(BOLD)" ** Building Python module..."$(NBOLD)
 
-_read_dummy.so: read_dummy.o fcwrap.o read_dummy_wrap.o
+_read_dummy.so: read_dummy.mod fcwrap.mod read_dummy_wrap.o
 	@$(ECHO) $(BOLD)"  * Compiling Python shared library..."$(NBOLD)
 	$(FC) -shared -lifcore -o _read_dummy.so read_dummy_wrap.o read_dummy.o fcwrap.o
 
@@ -136,7 +136,7 @@ read_dummy_wrap.o: read_dummy.h read_dummy_wrap.c
 	@$(ECHO) $(BOLD)"  * Compiling SWIG wrapper..."$(NBOLD)
 	$(CC) $(CFLAGS_OPT) $(CFLAGS) -c read_dummy_wrap.c `python-config --cflags`
 #######################################################################
-c: read_dummy.o fcwrap.o pre-c read_dummy
+c: read_dummy.mod fcwrap.mod pre-c read_dummy
 
 pre-c:
 	@$(ECHO) $(BOLD)" ** Building C wrapper..."$(NBOLD)
@@ -145,7 +145,7 @@ read_dummy_run.o: read_dummy.h src/read_dummy_run.c
 	@$(ECHO) $(BOLD)"  * Compiling C program..."$(NBOLD)
 	$(CC) $(CFLAGS_OPT) $(CFLAGS) -I. -c src/read_dummy_run.c
 
-read_dummy: read_dummy.o fcwrap.o read_dummy_run.o
+read_dummy: read_dummy.mod fcwrap.mod read_dummy_run.o
 	@$(ECHO) $(BOLD)"  * Compiling C program -> final executable..."$(NBOLD)
 	$(FC) $(FCFLAGS_OPT) -o read_dummy read_dummy_run.o read_dummy.o fcwrap.o -nofor-main
 #######################################################################
@@ -154,7 +154,7 @@ fortran: pre-fortran test_dummy.x
 pre-fortran:
 	@$(ECHO) $(BOLD)" ** Building pure Fortran test..."$(NBOLD)
 
-test_dummy.x: read_dummy.o fcwrap.o test_dummy.o
+test_dummy.x: read_dummy.mod test_dummy.o
 	$(FC) -o test_dummy.x test_dummy.o kinds.o read_dummy.o
 
 test_dummy.o:
