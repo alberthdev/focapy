@@ -27,3 +27,5 @@ If you wish to test Focapy, download a release archive, extract, and run the fol
     ./read_dummy
     # Python test program (using Focapy C headers + SWIG include)
     python test/read_dummy_run.py
+
+If you wish to look inside FoCaPy, take a look at the script, and follow from there!
